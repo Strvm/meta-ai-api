@@ -74,7 +74,7 @@ class MetaAI:
         if last_streamed_response is None:
             if attempts > 3:
                 raise Exception(
-                    "Was not able to query Meta AI. Either patched or MetaAI is having issues."
+                    "MetaAI is having issues and was not able to respond (Server Error)"
                 )
             self.access_token = self.get_access_token()
             return self.prompt(message=message, attempts=attempts + 1)
