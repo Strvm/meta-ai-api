@@ -1,19 +1,49 @@
 import json
+import urllib
 
 import requests
 from requests_html import HTMLSession
 
 
 class MetaAI:
+    """
+    A class to interact with the Meta AI API to obtain and use access tokens for sending
+    and receiving messages from the Meta AI Chat API.
+    """
+
     def __init__(self):
         self.session = requests.Session()
         self.access_token = None
 
-    def get_access_token(self):
+    def get_access_token(self) -> str:
+        """
+        Retrieves an access token using Meta's authentication API.
+
+        Returns:
+            str: A valid access token.
+        """
         cookies = self.get_cookies()
         url = "https://www.meta.ai/api/graphql/"
 
-        payload = "av=0&__user=0&__a=1&__req=4&__ccg=UNKNOWN&lsd=AVrWIDJrQQI&__jssesw=1&fb_api_caller_class=RelayModern&fb_api_req_friendly_name=useAbraAcceptTOSForTempUserMutation&variables=%7B%22dob%22%3A%221999-01-01%22%2C%22icebreaker_type%22%3A%22TEXT%22%2C%22__relay_internal__pv__WebPixelRatiorelayprovider%22%3A1%7D&server_timestamps=true&doc_id=7604648749596940"
+        payload = {
+            "av": "0",
+            "__user": "0",
+            "__a": "1",
+            "__req": "4",
+            "__ccg": "UNKNOWN",
+            "lsd": "AVrWIDJrQQI",
+            "__jssesw": "1",
+            "fb_api_caller_class": "RelayModern",
+            "fb_api_req_friendly_name": "useAbraAcceptTOSForTempUserMutation",
+            "variables": {
+                "dob": "1999-01-01",
+                "icebreaker_type": "TEXT",
+                "__relay_internal__pv__WebPixelRatiorelayprovider": 1,
+            },
+            "server_timestamps": "true",
+            "doc_id": "7604648749596940",
+        }
+        payload = urllib.parse.urlencode(payload)
         headers = {
             "content-type": "application/x-www-form-urlencoded",
             "cookie": f'_js_datr={cookies["_js_datr"]}; abra_csrf={cookies["abra_csrf"]};',
@@ -31,31 +61,59 @@ class MetaAI:
         ]["access_token"]
         return access_token
 
-    def get_cookies(self):
-        # Need to make this much cleaner
-        session = HTMLSession()
-        r = session.get("https://www.meta.ai/")
-        raw_text = r.text
-        _js_datr_start = raw_text.find('_js_datr":{"value":"')
-        _js_datr_end = raw_text.find('",', _js_datr_start)
-        _js_datr = raw_text[_js_datr_start:_js_datr_end].replace(
-            '_js_datr":{"value":"', ""
-        )
+    def prompt(self, message: str, attempts: int = 0) -> str:
+        """
+        Sends a message to the Meta AI and returns the response.
 
-        abra_csrf_start = raw_text.find('abra_csrf":{"value":"')
-        abra_csrf_end = raw_text.find('",', abra_csrf_start)
-        abra_csrf = raw_text[abra_csrf_start:abra_csrf_end].replace(
-            'abra_csrf":{"value":"', ""
-        )
-        return {"_js_datr": _js_datr, "abra_csrf": abra_csrf}
+        Args:
+            message (str): The message to send.
+            attempts (int): The number of attempts made (used for recursion).
 
-    def prompt(self, message: str, attempts: int = 0):
+        Returns:
+            str: The received response from Meta AI.
+
+        Raises:
+            Exception: If unable to obtain a valid response after several attempts.
+        """
         if not self.access_token:
             self.access_token = self.get_access_token()
 
         url = "https://graph.meta.ai/graphql?locale=user"
-
-        payload = f"av=0&access_token={self.access_token}&__user=0&__a=1&__req=p&__hs=19831.HYP%3Aabra_pkg.2.1..0.0&dpr=1&__ccg=UNKNOWN&__s=%3A0ryskm%3Aewvpqb&__comet_req=46&lsd=AVrLt4uZ-4k&__spin_b=trunk&__jssesw=1&fb_api_caller_class=RelayModern&fb_api_req_friendly_name=useAbraSendMessageMutation&variables=%7B%22message%22%3A%7B%22sensitive_string_value%22%3A%22{message}%22%7D%2C%22externalConversationId%22%3A%22dae20bda-6450-4ce7-880c-1db1b3ae7da3%22%2C%22offlineThreadingId%22%3A%227186784311738402039%22%2C%22suggestedPromptIndex%22%3Anull%2C%22flashVideoRecapInput%22%3A%7B%22images%22%3A%5B%5D%7D%2C%22flashPreviewInput%22%3Anull%2C%22promptPrefix%22%3Anull%2C%22entrypoint%22%3A%22ABRA__CHAT__TEXT%22%2C%22icebreaker_type%22%3A%22TEXT%22%2C%22__relay_internal__pv__AbraDebugDevOnlyrelayprovider%22%3Afalse%2C%22__relay_internal__pv__WebPixelRatiorelayprovider%22%3A1%7D&server_timestamps=true&doc_id=7783822248314888"
+        payload = {
+            "av": "0",
+            "access_token": self.access_token,
+            "__user": "0",
+            "__a": "1",
+            "__req": "p",
+            "__hs": "19831.HYP:abra_pkg.2.1..0.0",
+            "dpr": "1",
+            "__ccg": "UNKNOWN",
+            "__s": ":0ryskm:ewvpqb",
+            "__comet_req": "46",
+            "lsd": "AVrLt4uZ-4k",
+            "__spin_b": "trunk",
+            "__jssesw": "1",
+            "fb_api_caller_class": "RelayModern",
+            "fb_api_req_friendly_name": "useAbraSendMessageMutation",
+            "variables": json.dumps(
+                {
+                    "message": {"sensitive_string_value": message},
+                    "externalConversationId": "dae20bda-6450-4ce7-880c-1db1b3ae7da3",
+                    "offlineThreadingId": "7186784311738402039",
+                    "suggestedPromptIndex": None,
+                    "flashVideoRecapInput": {"images": []},
+                    "flashPreviewInput": None,
+                    "promptPrefix": None,
+                    "entrypoint": "ABRA__CHAT__TEXT",
+                    "icebreaker_type": "TEXT",
+                    "__relay_internal__pv__AbraDebugDevOnlyrelayprovider": False,
+                    "__relay_internal__pv__WebPixelRatiorelayprovider": 1,
+                }
+            ),
+            "server_timestamps": "true",
+            "doc_id": "7783822248314888",
+        }
+        payload = urllib.parse.urlencode(payload)
         headers = {
             "content-type": "application/x-www-form-urlencoded",
             "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -67,7 +125,10 @@ class MetaAI:
         last_streamed_response = None
         text = ""
         for line in raw_response.split("\n"):
-            json_line = json.loads(line)
+            try:
+                json_line = json.loads(line)
+            except json.JSONDecodeError:
+                continue
             if "errors" not in json_line.keys():
                 last_streamed_response = json_line
 
@@ -78,7 +139,50 @@ class MetaAI:
                 )
             self.access_token = self.get_access_token()
             return self.prompt(message=message, attempts=attempts + 1)
-        for content in last_streamed_response["data"]["node"]["bot_response_message"][
+        response = self.format_response(response=last_streamed_response)
+        return response
+
+    def get_cookies(self) -> dict:
+        """
+        Extracts necessary cookies from the Meta AI main page.
+
+        Returns:
+            dict: A dictionary containing essential cookies.
+        """
+        session = HTMLSession()
+        response = session.get("https://www.meta.ai/")
+        return {
+            "_js_datr": self._extract_value(response.text, "_js_datr"),
+            "abra_csrf": self._extract_value(response.text, "abra_csrf"),
+        }
+
+    def _extract_value(self, text: str, key: str) -> str:
+        """
+        Helper function to extract a specific value from the given text using a key.
+
+        Args:
+            text (str): The text from which to extract the value.
+            key (str): The key associated with the value.
+
+        Returns:
+            str: The extracted value.
+        """
+        start = text.find(f'{key}":{{"value":"') + len(f'{key}":{{"value":"')
+        end = text.find('",', start)
+        return text[start:end]
+
+    def format_response(self, response: dict) -> str:
+        """
+        Formats the response from Meta AI to remove unnecessary characters.
+
+        Args:
+            response (dict): The dictionnary containing the response to format.
+
+        Returns:
+            str: The formatted response.
+        """
+        text = ""
+        for content in response["data"]["node"]["bot_response_message"][
             "composed_text"
         ]["content"]:
             text += content["text"] + "\n"
