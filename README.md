@@ -4,6 +4,8 @@ MetaAI is a Python library designed to interact with Meta's AI APIs. It encapsul
 
 With this you can easily prompt the AI with a message and get a response, directly from your Python code. **NO API KEY REQUIRED**
 
+**Meta AI is connected to the internet, so you will be able to get the latest real-time responses from the AI.**
+
 ## Usage
 1. **Download**:
 
