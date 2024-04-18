@@ -1,0 +1,19 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "meta_ai"
+version = "0.1.0"
+description = "Interact with the Meta AI API"
+authors = ["Romeo Phillips"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+requests = "2.31.0"
+requests-html = "0.10.0"
+lxml_html_cleaner = "0.1.1"
+
+
+[build]
+script = "build.py"
