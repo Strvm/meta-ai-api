@@ -10,13 +10,13 @@ With this you can easily prompt the AI with a message and get a response, direct
 1. **Download**:
 
    ```bash
-   pip install meta-ai
+   pip install meta-ai-api
    ```
    
 2. **Initialization**:
 
    ```python
-   from meta_ai import MetaAI
+   from meta_ai_api import MetaAI
    
    if __name__ == "__main__":
        ai = MetaAI()

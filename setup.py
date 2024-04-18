@@ -4,11 +4,11 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="meta_ai",
+    name="meta_ai_api",
     author="Roméo Phillips",
     author_email="phillipsromeo@gmail.com",
     description="Meta AI API Wrapper to interact with the Meta AI API",
-    keywords="llm, ai, meta_ai",
+    keywords="llm, ai, meta_ai_api",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/tomchen/example_pypi_package",
