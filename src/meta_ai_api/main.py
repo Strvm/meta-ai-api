@@ -76,4 +76,4 @@ class MetaAI:
 
 if __name__ == "__main__":
     meta = MetaAI()
-    print(meta.prompt("What was the match results for PSG vs Barca on April 16th"))
+    print(meta.prompt("Whats the weather in San Francisco today?"))
