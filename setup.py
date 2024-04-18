@@ -36,5 +36,5 @@ setuptools.setup(
     extras_require={
         "dev": ["check-manifest"],
     },
-    install_requires=["requests", "requests-html", "lxml_html_cleaner"],
+    install_requires=["requests", "requests-html"],
 )
