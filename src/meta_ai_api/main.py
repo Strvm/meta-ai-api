@@ -1,7 +1,9 @@
 import json
+import logging
+import time
 import urllib
 import uuid
-from typing import Dict, List
+from typing import Dict, List, Generator, Iterator
 
 import requests
 from requests_html import HTMLSession
@@ -11,6 +13,9 @@ from meta_ai_api.utils import (
     extract_value,
     format_response,
 )
+
+
+MAX_RETRIES = 3
 
 
 class MetaAI:
@@ -23,7 +28,8 @@ class MetaAI:
         self.session = requests.Session()
         self.session.headers.update(
             {
-                "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
             }
         )
         self.access_token = None
@@ -50,10 +56,11 @@ class MetaAI:
             },
             "doc_id": "7604648749596940",
         }
-        payload = urllib.parse.urlencode(payload)
+        payload = urllib.parse.urlencode(payload)  # noqa
         headers = {
             "content-type": "application/x-www-form-urlencoded",
-            "cookie": f'_js_datr={self.cookies["_js_datr"]}; abra_csrf={self.cookies["abra_csrf"]}; datr={self.cookies["datr"]};',
+            "cookie": f'_js_datr={self.cookies["_js_datr"]}; '
+            f'abra_csrf={self.cookies["abra_csrf"]}; datr={self.cookies["datr"]};',
             "sec-fetch-site": "same-origin",
             "x-fb-friendly-name": "useAbraAcceptTOSForTempUserMutation",
         }
@@ -65,16 +72,19 @@ class MetaAI:
         ]["access_token"]
         return access_token
 
-    def prompt(self, message: str, attempts: int = 0) -> Dict:
+    def prompt(
+        self, message: str, stream: bool = False, attempts: int = 0
+    ) -> Dict or Generator[Dict, None, None]:
         """
         Sends a message to the Meta AI and returns the response.
 
         Args:
             message (str): The message to send.
-            attempts (int): The number of attempts made (used for recursion).
+            stream (bool): Whether to stream the response or not. Defaults to False.
+            attempts (int): The number of attempts to retry if an error occurs. Defaults to 0.
 
         Returns:
-            str: The received response from Meta AI.
+            dict: A dictionary containing the response message and sources.
 
         Raises:
             Exception: If unable to obtain a valid response after several attempts.
@@ -82,6 +92,9 @@ class MetaAI:
         if not self.access_token:
             self.access_token = self.get_access_token()
 
+        # Need to sleep for a bit, for some reason the API doesn't like it when we send request too quickly
+        # (maybe Meta needs to register Cookies on their side?)
+        time.sleep(1)
         url = "https://graph.meta.ai/graphql?locale=user"
         payload = {
             "access_token": self.access_token,
@@ -105,42 +118,112 @@ class MetaAI:
             "server_timestamps": "true",
             "doc_id": "7783822248314888",
         }
-        payload = urllib.parse.urlencode(payload)
+        payload = urllib.parse.urlencode(payload)  # noqa
         headers = {
             "content-type": "application/x-www-form-urlencoded",
             "x-fb-friendly-name": "useAbraSendMessageMutation",
         }
 
-        response = self.session.post(url, headers=headers, data=payload)
-        raw_response = response.text
+        response = self.session.post(url, headers=headers, data=payload, stream=stream)
+        if not stream:
+            raw_response = response.text
+            last_streamed_response = self.extract_last_response(raw_response)
+            if not last_streamed_response:
+                return self.retry(message, stream=stream, attempts=attempts)
+
+            extracted_data = self.extract_data(last_streamed_response)
+            return extracted_data
+
+        else:
+            lines = response.iter_lines()
+            is_error = json.loads(next(lines))
+            if len(is_error.get("errors", [])) > 0:
+                return self.retry(message, stream=stream, attempts=attempts)
+            return self.stream_response(lines)
+
+    def retry(self, message: str, stream: bool = False, attempts: int = 0):
+        """
+        Retries the prompt function if an error occurs.
+        """
+        if attempts <= MAX_RETRIES:
+            logging.warning(
+                f"Was unable to obtain a valid response from Meta AI. Retrying... Attempt {attempts + 1}/{MAX_RETRIES}."
+            )
+            time.sleep(3)
+            return self.prompt(message, stream=stream, attempts=attempts + 1)
+        else:
+            raise Exception(
+                "Unable to obtain a valid response from Meta AI. Try again later."
+            )
+
+    @staticmethod
+    def extract_last_response(response: str) -> Dict:
+        """
+        Extracts the last response from the Meta AI API.
+
+        Args:
+            response (str): The response to extract the last response from.
+
+        Returns:
+            dict: A dictionary containing the last response.
+        """
         last_streamed_response = None
-        for line in raw_response.split("\n"):
+        for line in response.split("\n"):
             try:
                 json_line = json.loads(line)
             except json.JSONDecodeError:
                 continue
+
             bot_response_message = (
                 json_line.get("data", {})
                 .get("node", {})
                 .get("bot_response_message", {})
             )
+
             streaming_state = bot_response_message.get("streaming_state")
-            fetch_id = bot_response_message.get("fetch_id")
             if streaming_state == "OVERALL_DONE":
                 last_streamed_response = json_line
 
-        if last_streamed_response is None:
-            if attempts > 3:
-                raise Exception(
-                    "MetaAI is having issues and was not able to respond (Server Error)"
-                )
-            self.access_token = self.get_access_token()
-            return self.prompt(message=message, attempts=attempts + 1)
-        response = format_response(response=last_streamed_response)
-        sources = self.fetch_sources(fetch_id)
+        return last_streamed_response
+
+    def stream_response(self, lines: Iterator[str]):
+        """
+        Streams the response from the Meta AI API.
+
+        Args:
+            lines (Iterator[str]): The lines to stream.
+
+        Yields:
+            dict: A dictionary containing the response message and sources.
+        """
+        for line in lines:
+            if line:
+                json_line = json.loads(line)
+                extracted_data = self.extract_data(json_line)
+                if not extracted_data.get("message"):
+                    continue
+                yield extracted_data
+
+    def extract_data(self, json_line: dict):
+        """
+        Extract data and sources from a parsed JSON line.
+
+        Args:
+            json_line (dict): Parsed JSON line.
+
+        Returns:
+            Tuple (str, list): Response message and list of sources.
+        """
+        bot_response_message = (
+            json_line.get("data", {}).get("node", {}).get("bot_response_message", {})
+        )
+        response = format_response(response=json_line)
+        fetch_id = bot_response_message.get("fetch_id")
+        sources = self.fetch_sources(fetch_id) if fetch_id else []
         return {"message": response, "sources": sources}
 
-    def get_cookies(self) -> dict:
+    @staticmethod
+    def get_cookies() -> dict:
         """
         Extracts necessary cookies from the Meta AI main page.
 
@@ -185,7 +268,7 @@ class MetaAI:
             "doc_id": "6946734308765963",
         }
 
-        payload = urllib.parse.urlencode(payload)
+        payload = urllib.parse.urlencode(payload)  # noqa
 
         headers = {
             "authority": "graph.meta.ai",
@@ -207,4 +290,8 @@ class MetaAI:
 
 if __name__ == "__main__":
     meta = MetaAI()
-    print(meta.prompt("What was the Warriors score last game?"))
+    resp = meta.prompt("What was the Warriors score last game?", stream=False)
+    # for r in resp:
+    #     print(r)
+
+    print(resp)
