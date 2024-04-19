@@ -105,7 +105,7 @@ for r in response:
     print(r)
 ```
 
-```json
+```
 {'message': '\n', 'sources': []}
 {'message': 'The\n', 'sources': []}
 {'message': 'The Golden\n', 'sources': []}
