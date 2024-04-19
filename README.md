@@ -33,23 +33,31 @@ print(response)
 result:
 ```json
 {
-   "message":"The weather in San Francisco, California, today includes ¹:\nNo precipitation with skies ranging from clear to cloudy\nWind speeds range from 0 to 21 miles per hour\nTemperatures range from 52 to 69 degrees Fahrenheit\nPlease note that the weather forecast is continually changing ² ³ ⁴.\n",
+   "message":"The weather in San Francisco today is mostly clear to overcast, with no precipitation, a wind speed between 0 and 8 miles per hour and temperatures ranging from 51 to 55 degrees Fahrenheit ¹. The date is Friday, April 19, 2024 ². Please note that the weather forecast is continually changing ³ ⁴ ⁵ ⁶.\n",
    "sources":[
       {
-         "link":"https://www.wolframalpha.com/input?i=San+Francisco+weather+today",
+         "link":"https://www.wolframalpha.com/input?i=San+Francisco+weather+today+and+date",
          "title":"WolframAlpha"
       },
       {
+         "link":"https://www.timeanddate.com/weather/usa/san-francisco",
+         "title":"Weather for San Francisco, California, USA - timeanddate.com"
+      },
+      {
+         "link":"https://www.accuweather.com/en/us/san-francisco/94103/weather-today/347629",
+         "title":"Weather Today for San Francisco, CA | AccuWeather"
+      },
+      {
          "link":"https://www.accuweather.com/en/us/san-francisco/94103/weather-forecast/347629",
-         "title":"San Francisco, CA Weather Forecast - AccuWeather"
+         "title":"San Francisco, CA Weather Forecast | AccuWeather"
       },
       {
-         "link":"https://weather.com/weather/tenday/l/San+Francisco+CA+USCA0987:1:US",
-         "title":"10-Day Weather Forecast for San Francisco, CA"
+         "link":"https://forecast.weather.gov/zipcity.php?inputstring=San%20francisco%2CCA",
+         "title":"National Weather Service"
       },
       {
-         "link":"https://weather.com/weather/tenday/l/Inverness+CA?canonicalCityId=61b2ebcaa5e78eebca92d21eaff7a0439eb081e8e60287fca37af4186f8242b7",
-         "title":"10-Day Weather Forecast for Inverness, CA"
+         "link":"https://www.wunderground.com/weather/us/ca/san-francisco",
+         "title":"San Francisco, CA Weather Conditions | Weather Underground"
       }
    ]
 }
