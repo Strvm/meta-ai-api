@@ -12,7 +12,7 @@ authors = ["Romeo Phillips"]
 python = "^3.7"
 requests = "2.31.0"
 requests-html = "0.10.0"
-
+lxml_html_cleaner = "0.1.1"
 
 [build]
 script = "build.py"
