@@ -62,8 +62,12 @@ def format_response(response: dict) -> str:
         str: The formatted response.
     """
     text = ""
-    for content in response["data"]["node"]["bot_response_message"]["composed_text"][
-        "content"
-    ]:
+    for content in (
+        response.get("data", {})
+        .get("node", {})
+        .get("bot_response_message", {})
+        .get("composed_text", {})
+        .get("content", [])
+    ):
         text += content["text"] + "\n"
     return text
