@@ -6,7 +6,7 @@ from typing import Dict, List
 import requests
 from requests_html import HTMLSession
 
-from src.meta_ai_api.utils import (
+from meta_ai_api.utils import (
     generate_offline_threading_id,
     extract_value,
     format_response,
