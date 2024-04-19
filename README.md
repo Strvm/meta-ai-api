@@ -8,6 +8,11 @@ With this you can easily prompt the AI with a message and get a response, direct
 
 Meta AI is running Llama 3 LLM.
 
+## Features
+- **Prompt AI**: Send a message to the AI and get a response from Llama 3.
+- **Get Up To Date Information**: Get the latest information from the AI thanks to its connection to the internet.
+- **Get Sources**: Get the sources of the information provided by the AI.
+
 ## Usage
 **Download**:
 
