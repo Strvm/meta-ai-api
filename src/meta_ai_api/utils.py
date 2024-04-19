@@ -34,19 +34,20 @@ def generate_offline_threading_id() -> str:
     return str(threading_id)
 
 
-def extract_value(text: str, key: str) -> str:
+def extract_value(text: str, start_str: str, end_str: str) -> str:
     """
     Helper function to extract a specific value from the given text using a key.
 
     Args:
         text (str): The text from which to extract the value.
-        key (str): The key associated with the value.
+        start_str (str): The starting key.
+        end_str (str): The ending key.
 
     Returns:
         str: The extracted value.
     """
-    start = text.find(f'{key}":{{"value":"') + len(f'{key}":{{"value":"')
-    end = text.find('",', start)
+    start = text.find(start_str) + len(start_str)
+    end = text.find(end_str, start)
     return text[start:end]
 
 

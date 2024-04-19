@@ -40,7 +40,7 @@ class MetaAI:
         url = "https://www.meta.ai/api/graphql/"
 
         payload = {
-            "lsd": "AVrWIDJrQQI",
+            "lsd": self.cookies["lsd"],
             "fb_api_caller_class": "RelayModern",
             "fb_api_req_friendly_name": "useAbraAcceptTOSForTempUserMutation",
             "variables": {
@@ -56,7 +56,6 @@ class MetaAI:
             "cookie": f'_js_datr={self.cookies["_js_datr"]}; abra_csrf={self.cookies["abra_csrf"]}; datr={self.cookies["datr"]};',
             "sec-fetch-site": "same-origin",
             "x-fb-friendly-name": "useAbraAcceptTOSForTempUserMutation",
-            "x-fb-lsd": "AVrWIDJrQQI",
         }
 
         response = self.session.post(url, headers=headers, data=payload)
@@ -151,9 +150,18 @@ class MetaAI:
         session = HTMLSession()
         response = session.get("https://www.meta.ai/")
         return {
-            "_js_datr": extract_value(response.text, "_js_datr"),
-            "abra_csrf": extract_value(response.text, "abra_csrf"),
-            "datr": extract_value(response.text, "datr"),
+            "_js_datr": extract_value(
+                response.text, start_str='_js_datr":{"value":"', end_str='",'
+            ),
+            "abra_csrf": extract_value(
+                response.text, start_str='abra_csrf":{"value":"', end_str='",'
+            ),
+            "datr": extract_value(
+                response.text, start_str='datr":{"value":"', end_str='",'
+            ),
+            "lsd": extract_value(
+                response.text, start_str='"LSD",[],{"token":"', end_str='"}'
+            ),
         }
 
     def fetch_sources(self, fetch_id: str) -> List[Dict]:
