@@ -1,0 +1,2 @@
+class FacebookInvalidCredentialsException(Exception):
+    pass
