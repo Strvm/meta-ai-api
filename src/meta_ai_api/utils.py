@@ -144,6 +144,12 @@ def get_fb_session(email, password):
     session = requests.session()
 
     result = session.post(post_url, headers=headers, data=data)
+    if "sb" not in session.cookies:
+        raise FacebookInvalidCredentialsException(
+            "Was not able to login to Facebook. Please check your credentials. "
+            "You may also have been rate limited. Try to connect to Facebook manually."
+        )
+
     cookies = {
         **result.cookies.get_dict(),
         "sb": session.cookies["sb"],
