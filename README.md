@@ -10,6 +10,7 @@ Meta AI is running Llama 3 LLM.
 
 ## Features
 - **Prompt AI**: Send a message to the AI and get a response from Llama 3.
+- **Image Generation**: Generate images using the AI. (Only for FB authenticated users)
 - **Get Up To Date Information**: Get the latest information from the AI thanks to its connection to the internet.
 - **Get Sources**: Get the sources of the information provided by the AI.
 - **Streaming**: Stream the AI's response in real-time or get the final response.
@@ -124,3 +125,49 @@ for r in response:
 ...
 {'message': "The Golden State Warriors' last game was against the Sacramento Kings on April 16, 2024, at the Golden 1 Center in Sacramento, California. The Kings won the game with a score of 118-94, with the Warriors scoring 22 points in the first quarter, 28 in the second, 26 in the third and 18 in the fourth quarter ¹.\n", 'sources': [{'link': 'https://sportradar.com/', 'title': 'Game Info of NBA from sportradar.com'}]}
 ```
+
+**Generate Image**:
+
+By default image generation is only available for FB authenticated users. If you go on https://www.meta.ai/ , and ask the AI to generate an image, you will be prompted to authenticate with Facebook.
+So if you want to generate images using this library, you need to authenticate using your FB credentials.
+
+**Note**: There seems to be higher rate limits for authenticated users. So only authenticate to generate images.
+
+```python
+from meta_ai_api import MetaAI
+ai = MetaAI(fb_email="your_fb_email", fb_password="your_fb_password")
+resp = ai.prompt(message="Generate an image of a tech CEO")
+print(resp)
+```
+
+```json
+{
+   "message":"\n",
+   "sources":[
+      
+   ],
+   "media":[
+      {
+         "url":"https://scontent-lax3-1.xx.fbcdn.net/o1/v/t0/f1/m247/4282108942387920518_1946149595_21-04-2024-14-17-48.jpeg?_nc_ht=scontent-lax3-1.xx.fbcdn.net&_nc_cat=103&ccb=9-4&oh=00_AfCnbCX7nl_J5kF6mahnams4d99Rs5WZA780HGS_scfc6A&oe=662771EE&_nc_sid=5b3566",
+         "type":"IMAGE",
+         "prompt":"a tech CEO"
+      },
+      {
+         "url":"https://scontent-lax3-1.xx.fbcdn.net/o1/v/t0/f1/m247/3356467762794691754_1025991308_21-04-2024-14-17-48.jpeg?_nc_ht=scontent-lax3-1.xx.fbcdn.net&_nc_cat=108&ccb=9-4&oh=00_AfBLmSbTSqshNAL82KIFk8hGXyL8iK_CZLGcMmmddPrxuA&oe=66276EDD&_nc_sid=5b3566",
+         "type":"IMAGE",
+         "prompt":"a tech CEO"
+      },
+      {
+         "url":"https://scontent-lax3-1.xx.fbcdn.net/o1/v/t0/f1/m247/127487551948523111_2181921077_21-04-2024-14-17-48.jpeg?_nc_ht=scontent-lax3-1.xx.fbcdn.net&_nc_cat=104&ccb=9-4&oh=00_AfAejXKeKPA4vyKXoc6UR0rEirvZwi41P3KiCSQmHRHsEw&oe=66276E45&_nc_sid=5b3566",
+         "type":"IMAGE",
+         "prompt":"a tech CEO"
+      },
+      {
+         "url":"https://scontent-lax3-1.xx.fbcdn.net/o1/v/t0/f1/m247/3497663176351797954_3954783377_21-04-2024-14-17-47.jpeg?_nc_ht=scontent-lax3-1.xx.fbcdn.net&_nc_cat=110&ccb=9-4&oh=00_AfBp3bAfcuofqtI-z9D4bHw-GuGgCNPH_xhMM0PG_95S9Q&oe=66277AE9&_nc_sid=5b3566",
+         "type":"IMAGE",
+         "prompt":"a tech CEO"
+      }
+   ]
+}
+```
+![Tech CEO](https://scontent-lax3-1.xx.fbcdn.net/o1/v/t0/f1/m247/3497663176351797954_3954783377_21-04-2024-14-17-47.jpeg?_nc_ht=scontent-lax3-1.xx.fbcdn.net&_nc_cat=110&ccb=9-4&oh=00_AfBp3bAfcuofqtI-z9D4bHw-GuGgCNPH_xhMM0PG_95S9Q&oe=66277AE9&_nc_sid=5b3566)

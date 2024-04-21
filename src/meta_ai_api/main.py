@@ -14,6 +14,7 @@ from meta_ai_api.utils import (
     format_response,
 )
 
+from meta_ai_api.utils import get_fb_session
 
 MAX_RETRIES = 3
 
@@ -24,7 +25,7 @@ class MetaAI:
     and receiving messages from the Meta AI Chat API.
     """
 
-    def __init__(self):
+    def __init__(self, fb_email: str = None, fb_password: str = None):
         self.session = requests.Session()
         self.session.headers.update(
             {
@@ -33,7 +34,10 @@ class MetaAI:
             }
         )
         self.access_token = None
-        self.cookies = None
+        self.fb_email = fb_email
+        self.fb_password = fb_password
+        self.is_authed = fb_password is not None and fb_email is not None
+        self.cookies = self.get_cookies()
 
     def get_access_token(self) -> str:
         """
@@ -42,9 +46,7 @@ class MetaAI:
         Returns:
             str: A valid access token.
         """
-        self.cookies = self.get_cookies()
         url = "https://www.meta.ai/api/graphql/"
-
         payload = {
             "lsd": self.cookies["lsd"],
             "fb_api_caller_class": "RelayModern",
@@ -89,15 +91,20 @@ class MetaAI:
         Raises:
             Exception: If unable to obtain a valid response after several attempts.
         """
-        if not self.access_token:
+        if not self.access_token and not self.is_authed:
             self.access_token = self.get_access_token()
+            auth_payload = {"access_token": self.access_token}
+            url = "https://graph.meta.ai/graphql?locale=user"
+
+        else:
+            auth_payload = {"fb_dtsg": self.cookies["fb_dtsg"]}
+            url = "https://www.meta.ai/api/graphql/"
 
         # Need to sleep for a bit, for some reason the API doesn't like it when we send request too quickly
         # (maybe Meta needs to register Cookies on their side?)
         time.sleep(1)
-        url = "https://graph.meta.ai/graphql?locale=user"
         payload = {
-            "access_token": self.access_token,
+            **auth_payload,
             "fb_api_caller_class": "RelayModern",
             "fb_api_req_friendly_name": "useAbraSendMessageMutation",
             "variables": json.dumps(
@@ -123,6 +130,10 @@ class MetaAI:
             "content-type": "application/x-www-form-urlencoded",
             "x-fb-friendly-name": "useAbraSendMessageMutation",
         }
+        if self.is_authed:
+            headers["cookie"] = f'abra_sess={self.cookies["abra_sess"]}'
+            # Recreate the session to avoid cookie leakage when user is authenticated
+            self.session = requests.Session()
 
         response = self.session.post(url, headers=headers, data=payload, stream=stream)
         if not stream:
@@ -220,10 +231,40 @@ class MetaAI:
         response = format_response(response=json_line)
         fetch_id = bot_response_message.get("fetch_id")
         sources = self.fetch_sources(fetch_id) if fetch_id else []
-        return {"message": response, "sources": sources}
+        medias = self.extract_media(bot_response_message)
+        return {"message": response, "sources": sources, "media": medias}
 
-    @staticmethod
-    def get_cookies() -> dict:
+    def extract_media(self, json_line: dict) -> List[Dict]:
+        """
+        Extract media from a parsed JSON line.
+
+        Args:
+            json_line (dict): Parsed JSON line.
+
+        Returns:
+            list: A list of dictionaries containing the extracted media.
+        """
+        medias = []
+        imagine_card = json_line.get("imagine_card", {})
+        session = imagine_card.get("session", {}) if imagine_card else {}
+        media_sets = (
+            (json_line.get("imagine_card", {}).get("session", {}).get("media_sets", []))
+            if imagine_card and session
+            else []
+        )
+        for media_set in media_sets:
+            imagine_media = media_set.get("imagine_media", [])
+            for media in imagine_media:
+                medias.append(
+                    {
+                        "url": media.get("uri"),
+                        "type": media.get("media_type"),
+                        "prompt": media.get("prompt"),
+                    }
+                )
+        return medias
+
+    def get_cookies(self) -> dict:
         """
         Extracts necessary cookies from the Meta AI main page.
 
@@ -231,13 +272,17 @@ class MetaAI:
             dict: A dictionary containing essential cookies.
         """
         session = HTMLSession()
-        response = session.get("https://www.meta.ai/")
-        return {
+        headers = {}
+        if self.fb_email is not None and self.fb_password is not None:
+            fb_session = get_fb_session(self.fb_email, self.fb_password)
+            headers = {"cookie": f"abra_sess={fb_session['abra_sess']}"}
+        response = session.get(
+            "https://www.meta.ai/",
+            headers=headers,
+        )
+        cookies = {
             "_js_datr": extract_value(
                 response.text, start_str='_js_datr":{"value":"', end_str='",'
-            ),
-            "abra_csrf": extract_value(
-                response.text, start_str='abra_csrf":{"value":"', end_str='",'
             ),
             "datr": extract_value(
                 response.text, start_str='datr":{"value":"', end_str='",'
@@ -245,7 +290,18 @@ class MetaAI:
             "lsd": extract_value(
                 response.text, start_str='"LSD",[],{"token":"', end_str='"}'
             ),
+            "fb_dtsg": extract_value(
+                response.text, start_str='DTSGInitData",[],{"token":"', end_str='"'
+            ),
         }
+
+        if len(headers) > 0:
+            cookies["abra_sess"] = fb_session["abra_sess"]
+        else:
+            cookies["abra_csrf"] = extract_value(
+                response.text, start_str='abra_csrf":{"value":"', end_str='",'
+            )
+        return cookies
 
     def fetch_sources(self, fetch_id: str) -> List[Dict]:
         """
@@ -274,13 +330,18 @@ class MetaAI:
             "authority": "graph.meta.ai",
             "accept-language": "en-US,en;q=0.9,fr-FR;q=0.8,fr;q=0.7",
             "content-type": "application/x-www-form-urlencoded",
-            "cookie": f'dpr=2; abra_csrf={self.cookies["abra_csrf"]}; datr={self.cookies["datr"]}; ps_n=1; ps_l=1',
+            "cookie": f'dpr=2; abra_csrf={self.cookies.get("abra_csrf")}; datr={self.cookies.get("datr")}; ps_n=1; ps_l=1',
             "x-fb-friendly-name": "AbraSearchPluginDialogQuery",
         }
 
         response = self.session.post(url, headers=headers, data=payload)
         response_json = response.json()
-        search_results = response_json["data"]["message"]["searchResults"]
+        message = response_json.get("data", {}).get("message", {})
+        search_results = (
+            (response_json.get("data", {}).get("message", {}).get("searchResults"))
+            if message
+            else None
+        )
         if search_results is None:
             return []
 
@@ -291,7 +352,4 @@ class MetaAI:
 if __name__ == "__main__":
     meta = MetaAI()
     resp = meta.prompt("What was the Warriors score last game?", stream=False)
-    # for r in resp:
-    #     print(r)
-
     print(resp)
