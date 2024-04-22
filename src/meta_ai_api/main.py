@@ -16,6 +16,8 @@ from meta_ai_api.utils import (
 
 from meta_ai_api.utils import get_fb_session
 
+from meta_ai_api.exceptions import FacebookRegionBlocked
+
 MAX_RETRIES = 3
 
 
@@ -68,7 +70,13 @@ class MetaAI:
         }
 
         response = self.session.post(url, headers=headers, data=payload)
-        auth_json = response.json()
+        try:
+            auth_json = response.json()
+        except json.JSONDecodeError:
+            raise FacebookRegionBlocked(
+                "Unable to receive a valid response from Meta AI. This is likely due to your region being blocked. "
+                "Try manually accessing https://www.meta.ai/ to confirm."
+            )
         access_token = auth_json["data"]["xab_abra_accept_terms_of_service"][
             "new_temp_user_auth"
         ]["access_token"]
