@@ -91,7 +91,7 @@ class MetaAI:
         Raises:
             Exception: If unable to obtain a valid response after several attempts.
         """
-        if not self.access_token and not self.is_authed:
+        if not self.is_authed:
             self.access_token = self.get_access_token()
             auth_payload = {"access_token": self.access_token}
             url = "https://graph.meta.ai/graphql?locale=user"
