@@ -81,7 +81,7 @@ def format_response(response: dict) -> str:
 
 
 # Function to perform the login
-def get_fb_session(email, password):
+def get_fb_session(email, password, proxies=None):
     login_url = "https://mbasic.facebook.com/login/"
     headers = {
         "authority": "mbasic.facebook.com",
@@ -98,7 +98,7 @@ def get_fb_session(email, password):
         "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
     }
     # Send the GET request
-    response = requests.get(login_url, headers=headers)
+    response = requests.get(login_url, headers=headers, proxies=proxies)
     soup = BeautifulSoup(response.text, "html.parser")
 
     # Parse necessary parameters from the login form
@@ -142,6 +142,7 @@ def get_fb_session(email, password):
 
     # Send the POST request
     session = requests.session()
+    session.proxies = proxies
 
     result = session.post(post_url, headers=headers, data=data)
     if "sb" not in session.cookies:
@@ -183,7 +184,7 @@ def get_fb_session(email, password):
         "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
     }
 
-    response = requests.request("POST", url, headers=headers, data=payload)
+    response = requests.request("POST", url, headers=headers, data=payload, proxies=proxies)
 
     state = extract_value(response.text, start_str='"state":"', end_str='"')
 
@@ -203,6 +204,7 @@ def get_fb_session(email, password):
         "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
     }
     session = requests.session()
+    session.proxies = proxies
     response = session.get(url, headers=headers, data=payload, allow_redirects=False)
 
     next_url = response.headers["Location"]

@@ -40,14 +40,12 @@ class MetaAI:
         self.fb_password = fb_password
         self.proxy = proxy
         if self.proxy and not self.check_proxy():
-            raise Exception("Unable to connect to proxy. Please check your proxy settings.")
-            # I'm not entirely sure that I need to make a new Exception. 
-            # Although it needs to be done in a good way. 
-            # I'm waiting for the review.
+            raise ConnectionError("Unable to connect to proxy. Please check your proxy settings.")
+
         self.is_authed = fb_password is not None and fb_email is not None
         self.cookies = self.get_cookies()
 
-    def check_proxy(self, test_url: str="http://www.google.com") -> bool:
+    def check_proxy(self, test_url: str="https://api.ipify.org/?format=json") -> bool:
         """
         Checks the proxy connection by making a request to a test URL.
         
@@ -59,7 +57,11 @@ class MetaAI:
         """
         try:
             response = self.session.get(test_url, proxies=self.proxy, timeout=10)
-            return response.status_code == 200
+            if response.status_code == 200:
+                print(response.json())
+                self.session.proxies = self.proxy
+                return True
+            return False
         except requests.RequestException:
             return False
 
@@ -92,12 +94,8 @@ class MetaAI:
             "x-fb-friendly-name": "useAbraAcceptTOSForTempUserMutation",
         }
 
-        if self.proxy and self.check_proxy():
-            response = self.session.post(url, headers=headers, data=payload, proxies=self.proxy)
-        else:
-            response = self.session.post(url, headers=headers, data=payload)
-            # Probably still need to throw an exception. Not entirely sure.
-        
+        response = self.session.post(url, headers=headers, data=payload)
+
         try:
             auth_json = response.json()
         except json.JSONDecodeError:
@@ -105,7 +103,7 @@ class MetaAI:
                 "Unable to receive a valid response from Meta AI. This is likely due to your region being blocked. "
                 "Try manually accessing https://www.meta.ai/ to confirm."
             )
-        
+
         access_token = auth_json["data"]["xab_abra_accept_terms_of_service"][
             "new_temp_user_auth"
         ]["access_token"]
@@ -171,6 +169,7 @@ class MetaAI:
             headers["cookie"] = f'abra_sess={self.cookies["abra_sess"]}'
             # Recreate the session to avoid cookie leakage when user is authenticated
             self.session = requests.Session()
+            self.session.proxies = self.proxy
 
         response = self.session.post(url, headers=headers, data=payload, stream=stream)
         if not stream:
