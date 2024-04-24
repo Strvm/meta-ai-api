@@ -95,6 +95,21 @@ print(response)
 }
 ```
 
+**Using proxy**:
+
+```python
+from meta_ai_api import MetaAI
+
+proxy = {
+    'http': 'http://proxy_address:port',
+    'https': 'https://proxy_address:port'
+}
+
+ai = MetaAI(proxy=proxy)
+response = ai.prompt(message="How to find out which mushrooms are edible?")
+print(response)
+```
+
 **Streaming Response**:
 
 ```python
