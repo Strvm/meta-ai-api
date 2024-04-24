@@ -27,7 +27,9 @@ class MetaAI:
     and receiving messages from the Meta AI Chat API.
     """
 
-    def __init__(self, fb_email: str = None, fb_password: str = None, proxy: dict = None):
+    def __init__(
+        self, fb_email: str = None, fb_password: str = None, proxy: dict = None
+    ):
         self.session = requests.Session()
         self.session.headers.update(
             {
@@ -40,15 +42,17 @@ class MetaAI:
         self.fb_password = fb_password
         self.proxy = proxy
         if self.proxy and not self.check_proxy():
-            raise ConnectionError("Unable to connect to proxy. Please check your proxy settings.")
+            raise ConnectionError(
+                "Unable to connect to proxy. Please check your proxy settings."
+            )
 
         self.is_authed = fb_password is not None and fb_email is not None
         self.cookies = self.get_cookies()
 
-    def check_proxy(self, test_url: str="https://api.ipify.org/?format=json") -> bool:
+    def check_proxy(self, test_url: str = "https://api.ipify.org/?format=json") -> bool:
         """
         Checks the proxy connection by making a request to a test URL.
-        
+
         Args:
             test_url (str): A test site from which we check that the proxy is installed correctly.
 
@@ -58,7 +62,6 @@ class MetaAI:
         try:
             response = self.session.get(test_url, proxies=self.proxy, timeout=10)
             if response.status_code == 200:
-                print(response.json())
                 self.session.proxies = self.proxy
                 return True
             return False
