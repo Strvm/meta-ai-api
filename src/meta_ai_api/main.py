@@ -27,7 +27,7 @@ class MetaAI:
     and receiving messages from the Meta AI Chat API.
     """
 
-    def __init__(self, fb_email: str = None, fb_password: str = None):
+    def __init__(self, fb_email: str = None, fb_password: str = None, proxy: dict = None):
         self.session = requests.Session()
         self.session.headers.update(
             {
@@ -38,8 +38,30 @@ class MetaAI:
         self.access_token = None
         self.fb_email = fb_email
         self.fb_password = fb_password
+        self.proxy = proxy
+        if self.proxy and not self.check_proxy():
+            raise Exception("Unable to connect to proxy. Please check your proxy settings.")
+            # I'm not entirely sure that I need to make a new Exception. 
+            # Although it needs to be done in a good way. 
+            # I'm waiting for the review.
         self.is_authed = fb_password is not None and fb_email is not None
         self.cookies = self.get_cookies()
+
+    def check_proxy(self, test_url: str="http://www.google.com") -> bool:
+        """
+        Checks the proxy connection by making a request to a test URL.
+        
+        Args:
+            test_url (str): A test site from which we check that the proxy is installed correctly.
+
+        Returns:
+            bool: True if the proxy is working, False otherwise.
+        """
+        try:
+            response = self.session.get(test_url, proxies=self.proxy, timeout=10)
+            return response.status_code == 200
+        except requests.RequestException:
+            return False
 
     def get_access_token(self) -> str:
         """
@@ -48,6 +70,7 @@ class MetaAI:
         Returns:
             str: A valid access token.
         """
+
         url = "https://www.meta.ai/api/graphql/"
         payload = {
             "lsd": self.cookies["lsd"],
@@ -69,7 +92,12 @@ class MetaAI:
             "x-fb-friendly-name": "useAbraAcceptTOSForTempUserMutation",
         }
 
-        response = self.session.post(url, headers=headers, data=payload)
+        if self.proxy and self.check_proxy():
+            response = self.session.post(url, headers=headers, data=payload, proxies=self.proxy)
+        else:
+            response = self.session.post(url, headers=headers, data=payload)
+            # Probably still need to throw an exception. Not entirely sure.
+        
         try:
             auth_json = response.json()
         except json.JSONDecodeError:
@@ -77,6 +105,7 @@ class MetaAI:
                 "Unable to receive a valid response from Meta AI. This is likely due to your region being blocked. "
                 "Try manually accessing https://www.meta.ai/ to confirm."
             )
+        
         access_token = auth_json["data"]["xab_abra_accept_terms_of_service"][
             "new_temp_user_auth"
         ]["access_token"]
