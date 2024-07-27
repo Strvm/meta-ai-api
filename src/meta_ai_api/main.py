@@ -48,6 +48,8 @@ class MetaAI:
 
         self.is_authed = fb_password is not None and fb_email is not None
         self.cookies = self.get_cookies()
+        self.external_conversation_id = None
+        self.offline_threading_id = None
 
     def check_proxy(self, test_url: str = "https://api.ipify.org/?format=json") -> bool:
         """
@@ -75,6 +77,9 @@ class MetaAI:
         Returns:
             str: A valid access token.
         """
+
+        if self.access_token:
+            return self.access_token
 
         url = "https://www.meta.ai/api/graphql/"
         payload = {
@@ -113,7 +118,11 @@ class MetaAI:
         return access_token
 
     def prompt(
-        self, message: str, stream: bool = False, attempts: int = 0
+        self,
+        message: str,
+        stream: bool = False,
+        attempts: int = 0,
+        new_conversation: bool = False,
     ) -> Dict or Generator[Dict, None, None]:
         """
         Sends a message to the Meta AI and returns the response.
@@ -122,6 +131,7 @@ class MetaAI:
             message (str): The message to send.
             stream (bool): Whether to stream the response or not. Defaults to False.
             attempts (int): The number of attempts to retry if an error occurs. Defaults to 0.
+            new_conversation (bool): Whether to start a new conversation or not. Defaults to False.
 
         Returns:
             dict: A dictionary containing the response message and sources.
@@ -141,6 +151,9 @@ class MetaAI:
         # Need to sleep for a bit, for some reason the API doesn't like it when we send request too quickly
         # (maybe Meta needs to register Cookies on their side?)
         time.sleep(1)
+        if not self.external_conversation_id or new_conversation:
+            external_id = str(uuid.uuid4())
+            self.external_conversation_id = external_id
         payload = {
             **auth_payload,
             "fb_api_caller_class": "RelayModern",
@@ -148,7 +161,7 @@ class MetaAI:
             "variables": json.dumps(
                 {
                     "message": {"sensitive_string_value": message},
-                    "externalConversationId": str(uuid.uuid4()),
+                    "externalConversationId": self.external_conversation_id,
                     "offlineThreadingId": generate_offline_threading_id(),
                     "suggestedPromptIndex": None,
                     "flashVideoRecapInput": {"images": []},
@@ -206,8 +219,7 @@ class MetaAI:
                 "Unable to obtain a valid response from Meta AI. Try again later."
             )
 
-    @staticmethod
-    def extract_last_response(response: str) -> Dict:
+    def extract_last_response(self, response: str) -> Dict:
         """
         Extracts the last response from the Meta AI API.
 
@@ -229,6 +241,11 @@ class MetaAI:
                 .get("node", {})
                 .get("bot_response_message", {})
             )
+            chat_id = bot_response_message.get("id")
+            if chat_id:
+                external_conversation_id, offline_threading_id, _ = chat_id.split("_")
+                self.external_conversation_id = external_conversation_id
+                self.offline_threading_id = offline_threading_id
 
             streaming_state = bot_response_message.get("streaming_state")
             if streaming_state == "OVERALL_DONE":
@@ -390,5 +407,9 @@ class MetaAI:
 
 if __name__ == "__main__":
     meta = MetaAI()
-    resp = meta.prompt("What was the Warriors score last game?", stream=False)
+    # resp = meta.prompt("What was the Warriors score last game?", stream=False)
+    resp = meta.prompt("what is 2 + 2?", stream=False)
+    print(resp)
+
+    resp = meta.prompt("what was my previous question?", stream=False)
     print(resp)
