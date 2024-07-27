@@ -64,6 +64,34 @@ print(response)
 }
 ```
 ---
+### Follow conversations:
+```python
+```python
+meta = MetaAI()
+
+print(meta.prompt("what is 2 + 2?"))
+print(meta.prompt("what was my previous question?"))
+```
+
+```json
+{'message': '2 + 2 = 4\n', 'sources': [], 'media': []}
+{'message': 'Your previous question was "what is 2 + 2?"\n', 'sources': [], 'media': []}
+```
+
+And to start a new one:
+```python
+meta = MetaAI()
+
+print(meta.prompt("what is 2 + 2?"))
+print(meta.prompt("what was my previous question?", new_conversation=True))
+```
+
+```
+{'message': '2 + 2 = 4\n', 'sources': [], 'media': []}
+{'message': "This is the beginning of our conversation, so I don't have a previous question to refer to. I'm happy to chat with you, though! What's on your mind today?\n", 'sources': [], 'media': []}
+```
+
+---
 ```python
 from meta_ai_api import MetaAI
 
@@ -185,7 +213,11 @@ print(resp)
    ]
 }
 ```
-![Tech CEO](https://scontent-lax3-1.xx.fbcdn.net/o1/v/t0/f1/m247/3497663176351797954_3954783377_21-04-2024-14-17-47.jpeg?_nc_ht=scontent-lax3-1.xx.fbcdn.net&_nc_cat=110&ccb=9-4&oh=00_AfBp3bAfcuofqtI-z9D4bHw-GuGgCNPH_xhMM0PG_95S9Q&oe=66277AE9&_nc_sid=5b3566)
+![Tech CEO](https://i.imgur.com/9YR6qHq.jpeg)
+
+# Educational Purpose:
+This repository is intended for educational purposes only. It is a tool to demonstrate how to interact with Meta's AI APIs, providing an example for learning and experimentation. Users should adhere to Meta's terms of service and use the library responsibly.
+
 
 # Copyright:
 This program is licensed under the GNU GPL v3. All code has been written by me, Strvm.
@@ -193,7 +225,7 @@ This program is licensed under the GNU GPL v3. All code has been written by me, 
 # Copyright Notice:
 ```
 Strvm/meta-ai-api: a reverse engineered API wrapper for MetaAI
-Copyright (C) 2023 ading2210
+Copyright (C) 2023 Strvm
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
