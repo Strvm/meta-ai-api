@@ -14,6 +14,7 @@ Meta AI is running Llama 3 LLM.
 - **Get Up To Date Information**: Get the latest information from the AI thanks to its connection to the internet.
 - **Get Sources**: Get the sources of the information provided by the AI.
 - **Streaming**: Stream the AI's response in real-time or get the final response.
+- **Follow Conversations**: Start a new conversation or follow up on an existing one.
 
 ## Usage
 **Download**:
@@ -73,7 +74,7 @@ print(meta.prompt("what is 2 + 2?"))
 print(meta.prompt("what was my previous question?"))
 ```
 
-```json
+```
 {'message': '2 + 2 = 4\n', 'sources': [], 'media': []}
 {'message': 'Your previous question was "what is 2 + 2?"\n', 'sources': [], 'media': []}
 ```
