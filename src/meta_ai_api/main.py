@@ -115,6 +115,11 @@ class MetaAI:
         access_token = auth_json["data"]["xab_abra_accept_terms_of_service"][
             "new_temp_user_auth"
         ]["access_token"]
+
+        # Need to sleep for a bit, for some reason the API doesn't like it when we send request too quickly
+        # (maybe Meta needs to register Cookies on their side?)
+        time.sleep(1)
+
         return access_token
 
     def prompt(
@@ -148,9 +153,6 @@ class MetaAI:
             auth_payload = {"fb_dtsg": self.cookies["fb_dtsg"]}
             url = "https://www.meta.ai/api/graphql/"
 
-        # Need to sleep for a bit, for some reason the API doesn't like it when we send request too quickly
-        # (maybe Meta needs to register Cookies on their side?)
-        time.sleep(1)
         if not self.external_conversation_id or new_conversation:
             external_id = str(uuid.uuid4())
             self.external_conversation_id = external_id
@@ -407,9 +409,4 @@ class MetaAI:
 
 if __name__ == "__main__":
     meta = MetaAI()
-    # resp = meta.prompt("What was the Warriors score last game?", stream=False)
-    resp = meta.prompt("what is 2 + 2?", stream=False)
-    print(resp)
-
-    resp = meta.prompt("what was my previous question?", stream=False)
-    print(resp)
+    resp = meta.prompt("What was the Warriors score last game?", stream=False)
