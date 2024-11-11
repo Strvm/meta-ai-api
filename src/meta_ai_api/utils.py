@@ -82,7 +82,7 @@ def format_response(response: dict) -> str:
 
 # Function to perform the login
 def get_fb_session(email, password, proxies=None):
-    login_url = "https://mbasic.facebook.com/login/"
+    login_url = "https://www.facebook.com/login/?next"
     headers = {
         "authority": "mbasic.facebook.com",
         "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
@@ -104,48 +104,49 @@ def get_fb_session(email, password, proxies=None):
     # Parse necessary parameters from the login form
     lsd = soup.find("input", {"name": "lsd"})["value"]
     jazoest = soup.find("input", {"name": "jazoest"})["value"]
-    li = soup.find("input", {"name": "li"})["value"]
-    m_ts = soup.find("input", {"name": "m_ts"})["value"]
 
     # Define the URL and body for the POST request to submit the login form
-    post_url = "https://mbasic.facebook.com/login/device-based/regular/login/?refsrc=deprecated&lwv=100"
+    post_url = "https://www.facebook.com/login/?next"
     data = {
         "lsd": lsd,
         "jazoest": jazoest,
-        "m_ts": m_ts,
-        "li": li,
-        "try_number": "0",
-        "unrecognized_tries": "0",
+        "login_source": "comet_headerless_login",
         "email": email,
         "pass": password,
-        "login": "Log In",
-        "bi_xrwh": "0",
+        "login": "1",
+        "next": None,
     }
 
     headers = {
-        "authority": "mbasic.facebook.com",
-        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        "accept-language": "en-US,en;q=0.9",
-        "cache-control": "no-cache",
-        "content-type": "application/x-www-form-urlencoded",
-        "cookie": f"datr={response.cookies.get('datr')}; sb={response.cookies.get('sb')}; ps_n=1; ps_l=1",
-        "dpr": "2",
-        "origin": "https://mbasic.facebook.com",
-        "pragma": "no-cache",
-        "referer": "https://mbasic.facebook.com/login/",
-        "sec-fetch-site": "same-origin",
-        "sec-fetch-user": "?1",
-        "upgrade-insecure-requests": "1",
-        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "viewport-width": "1728",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:132.0) Gecko/20100101 Firefox/132.0",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": None,
+        "Referer": "https://www.facebook.com/",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Origin": "https://www.facebook.com",
+        "DNT": "1",
+        "Sec-GPC": "1",
+        "Connection": "keep-alive",
+        "cookie": f"datr={response.cookies.get('datr')};",
+        "Upgrade-Insecure-Requests": "1",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "same-origin",
+        "Sec-Fetch-User": "?1",
+        "Priority": "u=0, i",
     }
+
+    from requests import cookies
 
     # Send the POST request
     session = requests.session()
+    jar = cookies.RequestsCookieJar()
     session.proxies = proxies
+    session.cookies = jar
 
     result = session.post(post_url, headers=headers, data=data)
-    if "sb" not in session.cookies:
+    if "sb" not in jar:
         raise FacebookInvalidCredentialsException(
             "Was not able to login to Facebook. Please check your credentials. "
             "You may also have been rate limited. Try to connect to Facebook manually."
@@ -153,10 +154,10 @@ def get_fb_session(email, password, proxies=None):
 
     cookies = {
         **result.cookies.get_dict(),
-        "sb": session.cookies["sb"],
-        "xs": session.cookies["xs"],
-        "fr": session.cookies["fr"],
-        "c_user": session.cookies["c_user"],
+        "sb": jar["sb"],
+        "xs": jar["xs"],
+        "fr": jar["fr"],
+        "c_user": jar["c_user"],
     }
 
     response_login = {
@@ -184,7 +185,9 @@ def get_fb_session(email, password, proxies=None):
         "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
     }
 
-    response = requests.request("POST", url, headers=headers, data=payload, proxies=proxies)
+    response = requests.request(
+        "POST", url, headers=headers, data=payload, proxies=proxies
+    )
 
     state = extract_value(response.text, start_str='"state":"', end_str='"')
 
@@ -195,7 +198,7 @@ def get_fb_session(email, password, proxies=None):
         "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
         "accept-language": "en-US,en;q=0.9",
         "cache-control": "no-cache",
-        "cookie": f"datr={response_login['cookies']['datr']}; sb={response_login['cookies']['sb']}; c_user={response_login['cookies']['c_user']}; xs={response_login['cookies']['xs']}; fr={response_login['cookies']['fr']}; m_page_voice={response_login['cookies']['m_page_voice']}; abra_csrf={meta_ai_cookies['abra_csrf']};",
+        "cookie": f"datr={response_login['cookies']['datr']}; sb={response_login['cookies']['sb']}; c_user={response_login['cookies']['c_user']}; xs={response_login['cookies']['xs']}; fr={response_login['cookies']['fr']}; abra_csrf={meta_ai_cookies['abra_csrf']};",
         "sec-fetch-dest": "document",
         "sec-fetch-mode": "navigate",
         "sec-fetch-site": "cross-site",
