@@ -147,7 +147,7 @@ def get_fb_session(email, password, proxies=None):
     session.cookies = jar
 
     result = session.post(post_url, headers=headers, data=data)
-    if "sb" not in jar:
+    if "sb" not in jar or "xs" not in jar:
         raise FacebookInvalidCredentialsException(
             "Was not able to login to Facebook. Please check your credentials. "
             "You may also have been rate limited. Try to connect to Facebook manually."
