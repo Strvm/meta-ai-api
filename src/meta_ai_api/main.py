@@ -18,6 +18,8 @@ from meta_ai_api.utils import get_fb_session
 
 from meta_ai_api.exceptions import FacebookRegionBlocked
 
+from src.meta_ai_api.utils import get_session
+
 MAX_RETRIES = 3
 
 
@@ -30,7 +32,7 @@ class MetaAI:
     def __init__(
         self, fb_email: str = None, fb_password: str = None, proxy: dict = None
     ):
-        self.session = requests.Session()
+        self.session = get_session()
         self.session.headers.update(
             {
                 "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
@@ -41,34 +43,11 @@ class MetaAI:
         self.fb_email = fb_email
         self.fb_password = fb_password
         self.proxy = proxy
-        if self.proxy and not self.check_proxy():
-            raise ConnectionError(
-                "Unable to connect to proxy. Please check your proxy settings."
-            )
 
         self.is_authed = fb_password is not None and fb_email is not None
         self.cookies = self.get_cookies()
         self.external_conversation_id = None
         self.offline_threading_id = None
-
-    def check_proxy(self, test_url: str = "https://api.ipify.org/?format=json") -> bool:
-        """
-        Checks the proxy connection by making a request to a test URL.
-
-        Args:
-            test_url (str): A test site from which we check that the proxy is installed correctly.
-
-        Returns:
-            bool: True if the proxy is working, False otherwise.
-        """
-        try:
-            response = self.session.get(test_url, proxies=self.proxy, timeout=10)
-            if response.status_code == 200:
-                self.session.proxies = self.proxy
-                return True
-            return False
-        except requests.RequestException:
-            return False
 
     def get_access_token(self) -> str:
         """
@@ -292,7 +271,8 @@ class MetaAI:
         medias = self.extract_media(bot_response_message)
         return {"message": response, "sources": sources, "media": medias}
 
-    def extract_media(self, json_line: dict) -> List[Dict]:
+    @staticmethod
+    def extract_media(json_line: dict) -> List[Dict]:
         """
         Extract media from a parsed JSON line.
 
@@ -410,3 +390,4 @@ class MetaAI:
 if __name__ == "__main__":
     meta = MetaAI()
     resp = meta.prompt("What was the Warriors score last game?", stream=False)
+    print(resp)

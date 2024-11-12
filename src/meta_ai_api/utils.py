@@ -1,6 +1,7 @@
 import logging
 import random
 import time
+from typing import Dict, Optional
 
 from requests_html import HTMLSession
 import requests
@@ -264,3 +265,27 @@ def get_cookies() -> dict:
             response.text, start_str='"LSD",[],{"token":"', end_str='"}'
         ),
     }
+
+
+def get_session(
+    proxy: Optional[Dict] = None, test_url: str = "https://api.ipify.org/?format=json"
+) -> requests.Session:
+    """
+    Get a session with the proxy set.
+
+    Args:
+        proxy (Dict): The proxy to use
+        test_url (str): A test site from which we check that the proxy is installed correctly.
+
+    Returns:
+        requests.Session: A session with the proxy set.
+    """
+    session = requests.Session()
+    if not proxy:
+        return session
+    response = session.get(test_url, proxies=proxy, timeout=10)
+    if response.status_code == 200:
+        session.proxies = proxy
+        return session
+    else:
+        raise Exception("Proxy is not working.")
