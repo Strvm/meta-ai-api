@@ -14,11 +14,9 @@ from meta_ai_api.utils import (
     format_response,
 )
 
-from meta_ai_api.utils import get_fb_session
+from meta_ai_api.utils import get_fb_session, get_session
 
 from meta_ai_api.exceptions import FacebookRegionBlocked
-
-from src.meta_ai_api.utils import get_session
 
 MAX_RETRIES = 3
 
