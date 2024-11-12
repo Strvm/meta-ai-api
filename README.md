@@ -244,4 +244,4 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # Meta Copyright:
 
-For more information related to the license tied to the MetaAI API, please visit https://www.llama.com/llama3/license/
+For more information related to the license tied to Llama, please visit https://www.llama.com/llama3/license/
